@@ -5,10 +5,6 @@ export const SignupValidation = z.object({
     username: z.string().min(2, { message: "Too Short" }),
     email: z.string().email(),
     password: z.string().min(8, { message: "Too Short" }),
-    confirmPassword: z.string(),
-  })
-  .refine(data => data.password === data.confirmPassword, {
-    message: "Passwords do not match", path: ["confirmPassword"],
   })
 
   export const SigninValidation = z.object({
