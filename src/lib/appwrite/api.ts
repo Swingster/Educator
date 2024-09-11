@@ -1,4 +1,4 @@
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 
 import { INewUser } from "@/types";
 import { account, appwriteConfig, avatars, databases } from "./config";
@@ -7,9 +7,9 @@ export async function createUserAccount(user: INewUser){
     try{
         const newAccount = await account.create(
             ID.unique(),
-            user.name,
             user.email,
             user.password,
+            user.name,
         )
 
         if(!newAccount) throw Error;
@@ -18,10 +18,10 @@ export async function createUserAccount(user: INewUser){
 
         const newUser = await saveUserToDB({
             accountId: newAccount.$id,
-            email: newAccount.email,
             name: newAccount.name,
-            imageUrl: avatarUrl,
+            email: newAccount.email,
             username: user.username,
+            imageUrl: avatarUrl,
         })
 
         return newUser;
@@ -51,4 +51,62 @@ export async function saveUserToDB(user: {
         console.log(error);
     }
 }
+
+export async function signInAccount(user: { 
+    email: string; 
+    password: string; 
+})  {
+    try {
+        const session = await account.createEmailSession(
+            user.email,
+            user.password);
+
+            return session;
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+export async function getAccount() {
+    try {
+      const currentAccount = await account.get();
+  
+      return currentAccount;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+export async function getCurrentUser()  {
+    try {
+        const currentAccount = await getAccount();
+
+        if(!currentAccount) throw Error;
+
+        const currentUser = await databases.listDocuments(
+            appwriteConfig.databaseId,
+            appwriteConfig.userCollectionId,
+            [Query.equal('accountId', currentAccount.$id)]
+        )
+
+            if(!currentUser) throw Error;
+
+            return currentUser.documents[0];
+    } catch (error) {
+        console.log(error);
+        return null;
+    }
+}
+
+export async function signOutAccount() {
+    try {
+      const session = await account.deleteSession("current");
+  
+      return session;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+
 

@@ -1,19 +1,24 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Link } from 'react-router-dom'
-
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Link, useNavigate } from 'react-router-dom'
+import { useToast } from "@/components/ui/use-toast"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-
 import { Button } from "@/components/ui/button"
 import { useForm } from "react-hook-form"
 import { SigninValidation } from "@/lib/validation"
 import { z } from "zod"
-
+import Loader from "@/components/shared/Loader"
+import { useSignInAccount } from "@/lib/react-query/queriesAndMutations"
+import { useUserContext } from "@/context/AuthContext"
 
 
 const SigninForm = () => {
+  const { toast } = useToast();
+  const { checkAuthUser, isLoading: isUserLoading } = useUserContext();
+  const navigate = useNavigate();
 
-  const isLoading = true;
+  const { mutateAsync: signInAccount } = 
+  useSignInAccount();
 
   // 1. Define your form.
   const form = useForm<z.infer<typeof SigninValidation>>({
@@ -25,10 +30,25 @@ const SigninForm = () => {
   })
  
   // 2. Define a submit handler.
-  function onSubmit(values: z.infer<typeof SigninValidation>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values)
+  async function onSubmit(values: z.infer<typeof SigninValidation>) {
+
+    const session = await signInAccount({
+      email: values.username,
+      password: values.password,
+    })
+  
+    if(!session) {
+      return toast({ title: 'Sign in failed. Please try again' }) 
+    }
+
+    const isLoggedIn = await checkAuthUser();
+
+    if(isLoggedIn) {
+      form.reset
+      navigate('/') }
+        else {
+          return toast({ title: 'Sign in failed. Please try again'})
+        }
   }
 
   return (
@@ -48,7 +68,7 @@ const SigninForm = () => {
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username or Email</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input type="text email" className="shad-input" {...field} />
               </FormControl>
@@ -71,7 +91,7 @@ const SigninForm = () => {
           )}
         />
         <Button type="submit">
-        {isLoading ? (
+        {isUserLoading ? (
             <div className="flex-center gap-2">
               <Loader />
             </div>
